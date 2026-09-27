@@ -36,7 +36,7 @@ Boundaries are enforced, not just documented:
 
 ## MIDI into Reaper
 
-**Confirmed route:** _not yet confirmed. Fill in after the spike: which route below worked, and any fixes._
+**Confirmed route (M0 spike, Sep 2026): Route A.** A note from the spike page landed on a Reaper track via Midi Through → PipeWire → Reaper on JACK. Getting Reaper's MIDI input to appear in qpwgraph took some fiddling on the Reaper side. _TODO: record the exact steps here._
 
 Chromium's Web MIDI sends to ALSA sequencer ports. Reaper has to see that port. On this machine (PipeWire 1.6), PipeWire's MIDI bridge already mirrors the kernel's `Midi Through Port-0` as the graph node `Midi-Bridge:Midi Through: Port-0 (capture)`, so route A needs nothing new installed.
 
