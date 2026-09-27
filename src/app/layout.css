@@ -1,0 +1,18 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+  background: #15161a;
+  color: #e6e6e6;
+}
+
+body {
+  margin: 0;
+}
+
+.placeholder {
+  padding: 2rem;
+}
+
+.placeholder a {
+  color: #8ab4f8;
+}
