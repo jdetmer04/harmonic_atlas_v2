@@ -130,7 +130,7 @@ Every chord appears infinitely often on the plane, so the view must pick which c
 ### Rendering
 
 - Nodes are small circles with spelled labels. Idle triangles get a faint fill; nodes in the current chord are lit.
-- **Triads** fill their triangle. **Other sets** light their nodes and draw a convex hull, with lattice-adjacent pairs joined by thick edges (sevenths appear as rhombuses). **Collinear sets** (sus, quartal, stacked fifths) collapse to a thick capsule along the fifths axis.
+- **Triads** fill their triangle. **Other sets** light their nodes and draw a convex hull, with lattice-adjacent pairs joined by thick edges (sevenths appear as rhombuses). **Collinear sets** collapse to a thick capsule along the axis they lie on: sus, quartal and stacked fifths along the fifths axis, augmented along major thirds, diminished along minor thirds.
 - The **bass note** gets a ring, drawn on its nearest copy to the chord.
 - The **trail** runs centroid to centroid with small arrowheads, fading over the last N chords (default 8). Segments are colored by move type: single P/L/R flip, compound move, or jump.
 - **Ghost neighbors:** hovering a triad shows its P, L and R images outlined with their letters.
