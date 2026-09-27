@@ -213,7 +213,7 @@ A stack of Euclidean lanes, each drawn as a necklace. Each lane has a role that 
 
 ### Tonnetz walker
 
-E(3, 8) with operator string `PL` walks a hexatonic cycle in tresillo rhythm: the trail circles a single note on the Tonnetz while the long comet sinks to the center (the hexatonic collection is symmetric under major-third transposition, so its F_5 is zero).
+E(3, 8) with operator string `PLR` walks the six triads around one note in tresillo rhythm: the trail circles that single note on the Tonnetz. With `PL` instead, the walker runs the hexatonic cycle (C, Cm, Ab, Abm, E, Em): the trail is a straight strip along the major-thirds axis that drifts on the infinite plane (and closes on the torus), while the long comet sinks to the center (the hexatonic collection is symmetric under major-third transposition, so its F_5 is zero).
 
 - Operators come from a cycling string or a weighted seeded random choice (e.g. P 0.5, L 0.3, R 0.2).
 - Output goes to the preview slice, where it plays and draws but can be discarded.
