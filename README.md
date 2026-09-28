@@ -2,11 +2,11 @@
 
 A local scratchpad for sketching harmonic ideas as paths through fixed spaces: a Tonnetz, a pitch-class DFT panel and Euclidean rhythm necklaces, sharing one sketch and one playhead. The full design is in [SPEC.md](SPEC.md).
 
-**Status:** M0 (skeleton and core). No views yet.
+**Status:** M1 — Tonnetz explorer. Click triangles and nodes to hear them, walk with P/L/R/S/H/N (and your own operator strings), pan and zoom, switch to the torus, and play a MIDI keyboard to light up what you hold.
 
 ## Running it
 
-Needs Node 22+ and Chromium (for Web MIDI).
+Needs Node 22+ and a browser with Web MIDI: Chromium, or Firefox 108+ (it asks for a site permission the first time).
 
 ```sh
 npm install
@@ -18,14 +18,39 @@ npm run build      # type-check (tsc -b) + production build
 
 The MIDI spike page is at <http://localhost:5173/spike/midi.html>.
 
+### Using the explorer
+
+| Input | Does |
+| --- | --- |
+| Click a triangle | Make that triad current and hear it |
+| Click a node | Add or remove it from the current chord (build any set) |
+| P, L, R | Flip the current triad |
+| S, H, N | Slide (LPR), hexatonic pole (LPL), RLP |
+| Custom keys | Type e.g. `Q=PRL, W=LRLR` in the right column |
+| Drag, wheel | Pan, zoom |
+| Esc | Clear |
+| `` ` `` | Frame-time overlay |
+
+Held MIDI notes override the current chord while held, with a ring on the lowest note. Pick the input in the top bar.
+
+Labels are spelled by lattice position, so they drift as you move: three rows up from C the same pitch is B♯. Past double accidentals a name is compacted (C♭³) and shows its everyday name as a hint (=A).
+
+Per-milestone manual checks live in [docs/smoke](docs/smoke).
+
 ## Layout
 
 ```text
-src/core/     pure music math, no DOM/audio (pcset, spell, tonnetz, ops, dft, rhythm)
-src/app/      React shell (placeholder until M1)
+src/core/     pure music math, no DOM/audio (pcset, spell, tonnetz, ops, dft, rhythm, voicing)
+src/state/    Zustand store: explorer, live MIDI, view prefs (the sketch arrives in M2)
+src/engine/   Tone.js audition synth, Web MIDI in
+src/views/    Tonnetz canvas (tiled static layer + per-frame layer), top bar, readout
+src/app/      composition root: wires engine to views, keymap, layout
 spike/        throwaway pages (MIDI → Reaper spike)
 tests/core/   one test file per core module
+tests/state/  store actions and selectors
+tests/views/  camera and hit-test math
 tests/lint/   proves the boundary lint rules fire
+docs/smoke/   manual checklists per milestone
 ```
 
 Boundaries are enforced, not just documented:
