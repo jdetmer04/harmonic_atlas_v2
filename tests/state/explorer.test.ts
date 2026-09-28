@@ -128,3 +128,27 @@ describe('custom operator strings', () => {
     expect(selectCustomOps(store.getState())).toBe(a);
   });
 });
+
+describe('display naming', () => {
+  it('drifted names carry the plain spelling as a hint', () => {
+    selectTriangle({ a: 0, b: -6, orient: 'up' }); // C major, 24 fifths flat
+    const d = selectDisplay(store.getState());
+    expect(d.name).toBe('E♭⁴');
+    expect(d.hint).toBe('C');
+    selectTriangle(C);
+    expect(selectDisplay(store.getState()).hint).toBeNull();
+  });
+
+  it('the torus spells plainly, since position no longer decides spelling', () => {
+    store.setState((s) => ({ view: { ...s.view, torus: true } }));
+    selectTriangle({ a: 3, b: 2, orient: 'up' }); // E♯ by position = F
+    expect(selectDisplay(store.getState())).toMatchObject({ name: 'F', hint: null });
+  });
+
+  it('node sets list names in line-of-fifths order', () => {
+    toggleNode({ a: 1, b: 0 });
+    toggleNode({ a: -1, b: 0 });
+    toggleNode({ a: 0, b: 0 });
+    expect(selectDisplay(store.getState()).name).toBe('F C G');
+  });
+});

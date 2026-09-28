@@ -1,9 +1,18 @@
 // Session actions: explorer, live MIDI and view prefs. These are not sketch
 // edits, so they are plain setters rather than undoable commands.
 
-import { fromPcs, type PC } from '../core/pcset';
+import { fromPcs, type PC, type PcSet } from '../core/pcset';
 import { COMPOUNDS, parseOps, walk } from '../core/ops';
-import { centroid, placeCompact, shapeOf, triangleNodes, type Coord, type Triangle } from '../core/tonnetz';
+import {
+  centroid,
+  pcAt,
+  placeCompact,
+  shapeOf,
+  triangleNodes,
+  trianglePcs,
+  type Coord,
+  type Triangle,
+} from '../core/tonnetz';
 import { store, type Camera, type CurrentChord, type LabelMode, type MidiPortInfo, type MidiStatus } from './store';
 
 const set = store.setState;
@@ -166,6 +175,10 @@ export function parseCustomOps(text: string): CustomOps {
 
 export function chordNodes(chord: CurrentChord): Coord[] {
   return chord.kind === 'triad' ? triangleNodes(chord.triangle) : chord.nodes;
+}
+
+export function chordPcs(chord: CurrentChord): PcSet {
+  return chord.kind === 'triad' ? trianglePcs(chord.triangle) : fromPcs(chord.nodes.map((n) => pcAt(n.a, n.b)));
 }
 
 function roundCoord(c: Coord): Coord {
