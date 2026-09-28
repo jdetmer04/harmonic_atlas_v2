@@ -39,7 +39,7 @@ export function TopBar() {
 
 function midiPlaceholder(status: string, count: number): string {
   if (status === 'pending') return 'Connecting…';
-  if (status === 'unavailable') return 'No Web MIDI (use Chromium)';
+  if (status === 'unavailable') return 'No Web MIDI in this browser';
   if (status === 'denied') return 'MIDI permission denied';
   return count === 0 ? 'No inputs' : 'None';
 }

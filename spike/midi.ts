@@ -1,4 +1,4 @@
-// M0 spike: prove Chromium's Web MIDI output reaches a Reaper track on this
+// M0 spike: prove the browser's Web MIDI output reaches a Reaper track on this
 // machine. Throwaway page; the real engine/midi-out.ts arrives in M5.
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -147,13 +147,13 @@ buttons.panic.addEventListener('click', () => {
 
 async function init() {
   if (!('requestMIDIAccess' in navigator)) {
-    setStatus('This browser has no Web MIDI. Use Chromium.', 'err');
+    setStatus('This browser has no Web MIDI. Use Firefox 108+ or Chromium.', 'err');
     return;
   }
   try {
     access = await navigator.requestMIDIAccess({ sysex: false });
   } catch (err) {
-    setStatus(`MIDI access refused: ${String(err)}. Check the site permission in Chromium.`, 'err');
+    setStatus(`MIDI access refused: ${String(err)}. Check the site's MIDI permission in the browser.`, 'err');
     return;
   }
   access.onstatechange = (e) => {

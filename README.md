@@ -6,11 +6,11 @@ A local scratchpad for sketching harmonic ideas as paths through fixed spaces: a
 
 ## Running it
 
-Needs Node 22+ and a browser with Web MIDI: Chromium, or Firefox 108+ (it asks for a site permission the first time).
+Needs Node 22+ and Firefox 108+ (Web MIDI asks for a site permission the first time). Chromium also works.
 
 ```sh
 npm install
-npm run dev        # http://localhost:5173 — open in Chromium
+npm run dev        # http://localhost:5173 — open in Firefox
 npm test           # Vitest: core fixtures, properties, lint-rule checks
 npm run lint       # ESLint, including architecture boundary rules
 npm run build      # type-check (tsc -b) + production build
@@ -63,7 +63,7 @@ Boundaries are enforced, not just documented:
 
 **Confirmed route (M0 spike, Sep 2026): Route A.** A note from the spike page landed on a Reaper track via Midi Through → PipeWire → Reaper on JACK. Getting Reaper's MIDI input to appear in qpwgraph took some fiddling on the Reaper side. _TODO: record the exact steps here._
 
-Chromium's Web MIDI sends to ALSA sequencer ports. Reaper has to see that port. On this machine (PipeWire 1.6), PipeWire's MIDI bridge already mirrors the kernel's `Midi Through Port-0` as the graph node `Midi-Bridge:Midi Through: Port-0 (capture)`, so route A needs nothing new installed.
+The browser's Web MIDI sends to ALSA sequencer ports. Reaper has to see that port. On this machine (PipeWire 1.6), PipeWire's MIDI bridge already mirrors the kernel's `Midi Through Port-0` as the graph node `Midi-Bridge:Midi Through: Port-0 (capture)`, so route A needs nothing new installed.
 
 ### Route A: Midi Through → PipeWire → Reaper (JACK)
 
@@ -79,7 +79,7 @@ Chromium's Web MIDI sends to ALSA sequencer ports. Reaper has to see that port. 
 sudo modprobe snd-virmidi midi_devs=1
 ```
 
-This creates a `VirMIDI` card that is both an ALSA sequencer port (Chromium sends to it) and a raw MIDI device (Reaper's ALSA mode can open it). Refresh the spike page and pick the VirMIDI output. In Reaper, enable the matching VirMIDI input. To load it at boot, add `snd-virmidi` to `/etc/modules-load.d/virmidi.conf` and `options snd-virmidi midi_devs=1` to `/etc/modprobe.d/virmidi.conf`.
+This creates a `VirMIDI` card that is both an ALSA sequencer port (the browser sends to it) and a raw MIDI device (Reaper's ALSA mode can open it). Refresh the spike page and pick the VirMIDI output. In Reaper, enable the matching VirMIDI input. To load it at boot, add `snd-virmidi` to `/etc/modules-load.d/virmidi.conf` and `options snd-virmidi midi_devs=1` to `/etc/modprobe.d/virmidi.conf`.
 
 ### Route C: a2jmidid
 
@@ -87,6 +87,6 @@ Fallback if neither of the above works: `a2jmidid -e` bridges every ALSA sequenc
 
 ### Spike page checks
 
-- **Loopback latency** sends a quiet note and times its return. `Midi Through` echoes whatever it receives, so this checks the Chromium side of route A without Reaper.
+- **Loopback latency** sends a quiet note and times its return. `Midi Through` echoes whatever it receives, so this checks the browser side of route A without Reaper.
 - **Arpeggio** schedules its notes ahead with Web MIDI timestamps, the way the engine will. Listen for even spacing in Reaper.
 - **Panic** sends All Notes Off and All Sound Off on all 16 channels.

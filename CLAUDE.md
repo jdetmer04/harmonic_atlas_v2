@@ -14,11 +14,11 @@ Local Vite + TypeScript web app: Tonnetz, pitch-class DFT and Euclidean rhythm v
 
 ## Commands
 
-- `npm run dev` — dev server (open in Chromium)
+- `npm run dev` — dev server (open in Firefox)
 - `npm test` — Vitest
 - `npm run lint` — ESLint (includes import-boundary rules)
 - `npm run build` — type-check + production build
 
 ## Environment
 
-Pop!_OS (KDE), Chromium for Web MIDI, Reaper on PipeWire/JACK as the DAW.
+Pop!_OS (KDE), Firefox for Web MIDI (no Chromium installed), Reaper on PipeWire/JACK as the DAW.

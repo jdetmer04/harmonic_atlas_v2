@@ -24,7 +24,7 @@ Design principles:
 
 ## Stack and runtime
 
-A local Vite + TypeScript web app, run with `npm run dev` and opened in Chromium on Pop!_OS. The browser already has everything this needs: Canvas 2D for drawing, Web Audio for sound, and Web MIDI for talking to Reaper.
+A local Vite + TypeScript web app, run with `npm run dev` and opened in Firefox on Pop!_OS. The browser already has everything this needs: Canvas 2D for drawing, Web Audio for sound, and Web MIDI for talking to Reaper.
 
 | Layer | Choice | Why |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ A local Vite + TypeScript web app, run with `npm run dev` and opened in Chromium
 | Chord parsing | `tonal` (parsing only) | Handles chord symbols and slash chords; all other math is ours |
 | Tests | Vitest | Core math is pure and easy to test |
 
-**Reaper routing on Linux.** Chromium's Web MIDI talks to ALSA sequencer ports. Reaper under PipeWire/JACK needs to see one of those ports, for example through a virtual MIDI port or PipeWire's ALSA–JACK MIDI bridge. Confirm the exact route in a short spike during M0 before building MIDI features on it. The .mid file export works regardless.
+**Reaper routing on Linux.** The browser's Web MIDI talks to ALSA sequencer ports. Reaper under PipeWire/JACK needs to see one of those ports, for example through a virtual MIDI port or PipeWire's ALSA–JACK MIDI bridge. Confirm the exact route in a short spike during M0 before building MIDI features on it. The .mid file export works regardless.
 
 **Rejected alternatives.**
 
@@ -117,7 +117,7 @@ The lattice repeats with period vectors (4, −1) and (0, 3), whose determinant 
 
 ### Spelling from position
 
-Label each node by its line-of-fifths index q = a + 4b rather than by its pitch class (F = −1, C = 0, G = 1, F# = 6, Bb = −2). The infinite plane then spells notes for free: a path that wanders eight fifths sharp shows G# where one that went flatward shows Ab.
+Label each node by its line-of-fifths index q = a + 4b rather than by its pitch class (F = −1, C = 0, G = 1, F# = 6, Bb = −2). The infinite plane then spells notes for free: a path that wanders eight fifths sharp shows G# where one that went flatward shows Ab. Past double accidentals a label is compacted (C♭³) and must always show its everyday name as a hint (=A); the readout does the same for chord names.
 
 ### Path embedding
 
@@ -309,7 +309,7 @@ Layout (top to bottom):
 
 ### Performance budgets
 
-Measured on a 2022 Legion 5 laptop in Chromium. A feature that breaks a budget waits.
+Measured on a 2022 Legion 5 laptop in Firefox (software Canvas 2D on this machine, so text-heavy redraws are costly). A feature that breaks a budget waits.
 
 | Measure | Budget |
 | --- | --- |
