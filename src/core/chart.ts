@@ -56,6 +56,29 @@ export interface Harmony {
   bass?: PC;
 }
 
+/** What the voicing puts in the bass: the chord's bass, else its root, else its lowest pitch class. */
+export function bassOf(c: { pcs: PcSet; bass?: PC; label?: string }): PC {
+  if (c.bass !== undefined) return c.bass;
+  const root = c.label ? symbolRoot(c.label) : null;
+  if (root !== null && (c.pcs & (1 << root)) !== 0) return root;
+  return triadOf(c.pcs)?.root ?? toPcs(c.pcs)[0] ?? 0;
+}
+
+const rootCache = new Map<string, PC | null>();
+
+/** The tonic of a chord symbol, if the label is one ("Am7" → 9). */
+function symbolRoot(label: string): PC | null {
+  const hit = rootCache.get(label);
+  if (hit !== undefined) return hit;
+  let s = label;
+  for (const [re, to] of ALIASES) s = s.replace(re, to);
+  const tonic = label.startsWith('[') || label.startsWith('{') ? null : Chord.get(s).tonic;
+  const root = tonic ? noteToPc(tonic) : null;
+  if (rootCache.size > 4096) rootCache.clear();
+  rootCache.set(label, root);
+  return root;
+}
+
 const ALIASES: [RegExp, string][] = [
   [/ø7?/u, 'm7b5'],
   [/°/u, 'dim'],

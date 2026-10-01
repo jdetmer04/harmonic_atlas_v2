@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import {
   barBeats,
+  bassOf,
   chordSymbol,
   chordText,
   leadingComments,
@@ -44,6 +45,18 @@ describe('parseSymbol (tonal)', () => {
   it('rejects non-chords', () => {
     expect(parseSymbol('Xyz')).toBeNull();
     expect(parseSymbol('C/Q')).toBeNull();
+  });
+});
+
+describe('bassOf', () => {
+  it('takes the slash bass, then the symbol root, then a triad root, then the lowest note', () => {
+    expect(bassOf({ pcs: fromPcs([0, 4, 7]), bass: 4 })).toBe(4);
+    expect(bassOf({ pcs: fromPcs([9, 0, 4, 7]), label: 'Am7' })).toBe(9);
+    expect(bassOf({ pcs: fromPcs([9, 0, 4, 7]), label: 'C6' })).toBe(0);
+    expect(bassOf({ pcs: fromPcs([9, 0, 4]) })).toBe(9);
+    expect(bassOf({ pcs: fromPcs([2, 3, 4]) })).toBe(2);
+    // A stale label whose root is no longer in the chord is ignored.
+    expect(bassOf({ pcs: fromPcs([1, 5, 8]), label: 'G' })).toBe(1);
   });
 });
 
