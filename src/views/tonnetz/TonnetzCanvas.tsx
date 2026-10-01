@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { closeVoicing } from '../../core/voicing';
-import { chordPcs, selectTriangle, setCamera, setHover, toggleNode } from '../../state/actions';
+import { chordPcs, selectTriangle, setHover, toggleNode } from '../../state/actions';
+import { setCamera } from '../../state/commands';
 import { selectDisplay } from '../../state/selectors';
 import { store, type Camera } from '../../state/store';
 import { useAudition, type Audition } from '../audition';
@@ -53,7 +54,7 @@ function mountTonnetz(canvas: HTMLCanvasElement, audition: Audition): () => void
   function viewCamera(now: number): Camera {
     const s = store.getState();
     if (s.view.torus) return torusCamera(vp);
-    if (!anim) return s.view.camera;
+    if (!anim) return s.sketch.view.camera;
     const t = Math.min(1, (now - anim.start) / AUTO_PAN_MS);
     const e = 1 - (1 - t) ** 3;
     return {
@@ -154,7 +155,7 @@ function mountTonnetz(canvas: HTMLCanvasElement, audition: Audition): () => void
     const moved = s.explorer.current !== prev.explorer.current || s.live.placed !== prev.live.placed;
     if (!moved || !s.view.autoPan || s.view.torus || drag) return;
     const nodes = selectDisplay(s).nodes;
-    const from = anim ? anim.to : s.view.camera;
+    const from = anim ? anim.to : s.sketch.view.camera;
     const to = ensureVisible(from, vp, nodes, Math.max(60, from.zoom * 1.2));
     if (to !== from) {
       anim = { from: viewCamera(performance.now()), to, start: performance.now() };
@@ -194,7 +195,7 @@ function mountTonnetz(canvas: HTMLCanvasElement, audition: Audition): () => void
       drag.moved = true;
       drag.x = p.x;
       drag.y = p.y;
-      if (!s.view.torus) setCamera(panBy(s.view.camera, dx, dy));
+      if (!s.view.torus) setCamera(panBy(s.sketch.view.camera, dx, dy));
       return;
     }
     const hit = hitTest(viewCamera(performance.now()), vp, p.x, p.y, s.view.torus);
@@ -234,7 +235,7 @@ function mountTonnetz(canvas: HTMLCanvasElement, audition: Audition): () => void
       zooming = false;
       requestDraw();
     }, ZOOM_SETTLE_MS);
-    setCamera(zoomAt(s.view.camera, vp, p.x, p.y, Math.exp(-e.deltaY * lines * 0.0015)));
+    setCamera(zoomAt(s.sketch.view.camera, vp, p.x, p.y, Math.exp(-e.deltaY * lines * 0.0015)));
   }
 
   canvas.addEventListener('pointerdown', onPointerDown);

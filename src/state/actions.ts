@@ -1,19 +1,23 @@
-// Session actions: explorer, live MIDI and view prefs. These are not sketch
-// edits, so they are plain setters rather than undoable commands.
+// Session actions: explorer, timeline selection, transport flags, live MIDI
+// and view prefs. These are not sketch edits, so they are plain setters
+// rather than undoable commands; sketch edits go through commands.ts.
 
-import { fromPcs, type PC, type PcSet } from '../core/pcset';
-import { COMPOUNDS, parseOps, walk } from '../core/ops';
+import { fromPcs, type PC } from '../core/pcset';
+import { walk } from '../core/ops';
+import { centroid, placeCompact, shapeOf, type Coord, type Triangle } from '../core/tonnetz';
+import { appendChord, type NewChord } from './commands';
+import { chordNodes, chordPcs, roundCoord } from './helpers';
+import { selectTrail } from './selectors';
 import {
-  centroid,
-  pcAt,
-  placeCompact,
-  shapeOf,
-  triangleNodes,
-  trianglePcs,
-  type Coord,
-  type Triangle,
-} from '../core/tonnetz';
-import { store, type Camera, type CurrentChord, type LabelMode, type MidiPortInfo, type MidiStatus } from './store';
+  store,
+  type CurrentChord,
+  type LabelMode,
+  type MidiPortInfo,
+  type MidiStatus,
+  type SketchSummary,
+} from './store';
+
+export { chordNodes, chordPcs, parseCustomOps, RESERVED_KEYS, type CustomOps } from './helpers';
 
 const set = store.setState;
 const get = store.getState;
@@ -32,7 +36,7 @@ export function selectTriangle(triangle: Triangle): CurrentChord {
  */
 export function toggleNode(node: Coord): CurrentChord | null {
   const cur = get().explorer.current;
-  const nodes = cur === null ? [] : cur.kind === 'triad' ? triangleNodes(cur.triangle) : cur.nodes;
+  const nodes = cur === null ? [] : chordNodes(cur);
   const without = nodes.filter((n) => n.a !== node.a || n.b !== node.b);
   const next = without.length === nodes.length ? [...nodes, { a: node.a, b: node.b }] : without;
   const current = normalize(next);
@@ -69,6 +73,68 @@ export function clearCurrent() {
   set((s) => ({ explorer: { ...s.explorer, current: null, lastMove: null } }));
 }
 
+/** Append the current (or draft) chord at the insert point. Returns the new chord's id. */
+export function appendCurrent(origin: NewChord['origin'] = 'tonnetz'): string | null {
+  const cur = get().explorer.current;
+  if (!cur) return null;
+  return appendChord({ pcs: chordPcs(cur), origin, near: centroid(chordNodes(cur)) });
+}
+
+// Timeline
+
+/** Select a chord: it becomes the current chord (so P/L/R continue from it) and the insert point follows it. */
+export function selectChord(id: string | null) {
+  const s = get();
+  if (id === null) {
+    set({ timeline: { ...s.timeline, selection: null } });
+    return;
+  }
+  const index = s.sketch.chords.findIndex((c) => c.id === id);
+  if (index < 0) return;
+  const e = selectTrail(s)[index];
+  const current: CurrentChord | null = !e
+    ? s.explorer.current
+    : e.shape.kind === 'triad'
+      ? { kind: 'triad', triangle: e.shape.triangle }
+      : { kind: 'nodes', nodes: e.nodes.map(({ a, b }) => ({ a, b })) };
+  set({
+    timeline: { selection: id, insertIndex: index + 1 },
+    explorer: { ...s.explorer, current, lastMove: null },
+  });
+}
+
+/** Move the insert point by whole chords (Left / Right). */
+export function moveInsert(delta: number) {
+  const s = get();
+  const insertIndex = Math.max(0, Math.min(s.sketch.chords.length, s.timeline.insertIndex + delta));
+  if (insertIndex !== s.timeline.insertIndex) set({ timeline: { selection: null, insertIndex } });
+}
+
+export function setInsertIndex(insertIndex: number) {
+  const s = get();
+  const i = Math.max(0, Math.min(s.sketch.chords.length, insertIndex));
+  set({ timeline: { selection: null, insertIndex: i } });
+}
+
+// Transport flags (the engine owns the clock; these mirror it for the UI)
+
+export function setPlaying(playing: boolean) {
+  set((s) => ({ transport: { ...s.transport, playing, chordIndex: playing ? s.transport.chordIndex : null } }));
+}
+
+export function setChordIndex(chordIndex: number | null) {
+  if (get().transport.chordIndex === chordIndex) return;
+  set((s) => ({ transport: { ...s.transport, chordIndex } }));
+}
+
+export function setMetronome(metronome: boolean) {
+  set((s) => ({ transport: { ...s.transport, metronome } }));
+}
+
+export function setCountIn(countIn: boolean) {
+  set((s) => ({ transport: { ...s.transport, countIn } }));
+}
+
 // Live MIDI
 
 /**
@@ -88,7 +154,7 @@ export function setHeld(notes: readonly number[]) {
       ? centroid(s.live.placed)
       : s.explorer.current
         ? centroid(chordNodes(s.explorer.current))
-        : s.view.camera,
+        : s.sketch.view.camera,
   );
   const placed = placeCompact(fromPcs(held), anchor);
   const bassPc = ((held[0] as number) % 12) as PC;
@@ -110,10 +176,6 @@ export function selectMidiInput(inputId: string | null) {
 
 // View prefs
 
-export function setCamera(camera: Camera) {
-  set((s) => ({ view: { ...s.view, camera } }));
-}
-
 export function setTorus(torus: boolean) {
   set((s) => ({ view: { ...s.view, torus } }));
 }
@@ -134,53 +196,12 @@ export function setCustomOpsText(customOpsText: string) {
   set((s) => ({ view: { ...s.view, customOpsText } }));
 }
 
-// Custom operator strings: "Q=PRL, W=LRLR"
-
-/** Letters that already have a job in the keymap. */
-export const RESERVED_KEYS = new Set(['P', 'L', 'R', ...Object.keys(COMPOUNDS), 'C']);
-
-export interface CustomOps {
-  bindings: Record<string, string>; // key letter → operator string
-  errors: string[];
+export function toggleChart() {
+  set((s) => ({ view: { ...s.view, chartOpen: !s.view.chartOpen } }));
 }
 
-export function parseCustomOps(text: string): CustomOps {
-  const bindings: Record<string, string> = {};
-  const errors: string[] = [];
-  for (const raw of text.split(/[,;\n]/)) {
-    const entry = raw.trim();
-    if (!entry) continue;
-    const m = /^([A-Za-z])\s*=\s*(.+)$/.exec(entry);
-    if (!m) {
-      errors.push(`"${entry}": write KEY=OPS, e.g. Q=PRL`);
-      continue;
-    }
-    const key = (m[1] as string).toUpperCase();
-    const ops = (m[2] as string).replace(/\s+/g, '').toUpperCase();
-    if (RESERVED_KEYS.has(key)) {
-      errors.push(`"${key}" is already a key (${[...RESERVED_KEYS].join(' ')} are taken)`);
-      continue;
-    }
-    try {
-      parseOps(ops);
-      bindings[key] = ops;
-    } catch (e) {
-      errors.push((e as Error).message);
-    }
-  }
-  return { bindings, errors };
-}
+// Library (saved sketches)
 
-// Helpers
-
-export function chordNodes(chord: CurrentChord): Coord[] {
-  return chord.kind === 'triad' ? triangleNodes(chord.triangle) : chord.nodes;
-}
-
-export function chordPcs(chord: CurrentChord): PcSet {
-  return chord.kind === 'triad' ? trianglePcs(chord.triangle) : fromPcs(chord.nodes.map((n) => pcAt(n.a, n.b)));
-}
-
-function roundCoord(c: Coord): Coord {
-  return { a: Math.round(c.a), b: Math.round(c.b) };
+export function setLibrary(library: SketchSummary[]) {
+  set({ library });
 }
