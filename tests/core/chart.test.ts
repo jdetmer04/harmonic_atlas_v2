@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import {
@@ -299,6 +300,15 @@ describe('chart round trip', () => {
       }),
       { numRuns: 100 },
     );
+  });
+});
+
+describe('M2 smoke chart', () => {
+  it('parses cleanly: 32 bars', () => {
+    const p = parseChart(readFileSync('docs/smoke/m2-sample-chart.txt', 'utf8'));
+    expect(p.errors).toEqual([]);
+    expect(p.bars).toBe(32);
+    expect(p.chords).toHaveLength(58);
   });
 });
 

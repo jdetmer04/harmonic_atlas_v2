@@ -1,7 +1,7 @@
 // Derived views of state, memoized on the inputs they read so per-frame
 // callers get the same object back until something changes.
 
-import { bassOf, parseChart, type ParsedChart } from '../core/chart';
+import { bassOf, chordText, parseChart, type ParsedChart } from '../core/chart';
 import { classifyMove, embedPath, type EmbeddedChord, type Move } from '../core/embed';
 import { fromPcs } from '../core/pcset';
 import { defaultName, noteName, spell } from '../core/spell';
@@ -18,9 +18,10 @@ export interface Display {
   pcs: number; // PcSet
   name: string; // spelled from position ('E♭⁴'), or plainly on the torus
   hint: string | null; // plain spelling when `name` has drifted past double accidentals ('C')
+  label: string | null; // the sketch chord's own name ('Am7'), when it is one
 }
 
-const NONE: Display = { source: 'none', nodes: [], shape: { kind: 'empty' }, bass: null, pcs: 0, name: '', hint: null };
+const NONE: Display = { source: 'none', nodes: [], shape: { kind: 'empty' }, bass: null, pcs: 0, name: '', hint: null, label: null };
 
 /** Memoize a function of a few inputs by identity. */
 function memo<A extends readonly unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
@@ -54,8 +55,12 @@ const voicings = memo((chords: readonly ChordEvent[], mode: Sketch['voicingMode'
 export const selectTrail = (s: AppState) => trail(s.sketch.chords, s.sketch.view.anchor);
 
 const ORIGIN: Coord = { a: 0, b: 0 };
+// The ring goes on the voiced bass: the slash bass, else the root, else the lowest note.
 const trail = memo((chords: readonly ChordEvent[], anchor: Coord | null): (EmbeddedChord | null)[] =>
-  embedPath(chords, anchor ?? ORIGIN),
+  embedPath(
+    chords.map((c) => ({ pcs: c.pcs, bass: bassOf(c) })),
+    anchor ?? ORIGIN,
+  ),
 );
 
 /** Move type into each chord from the one before; the first chord's is null. */
@@ -126,20 +131,21 @@ function computeDisplay(s: AppState, playing: number | null, path: readonly (Emb
   if (s.live.placed.length > 0) {
     const nodes = s.live.placed.map(({ a, b }) => ({ a, b }));
     const pcs = fromPcs(s.live.placed.map((p) => p.pc));
-    return { source: 'midi', nodes, shape: shapeOf(nodes), bass: s.live.bass, pcs, ...nodesName(nodes, torus) };
+    return { source: 'midi', nodes, shape: shapeOf(nodes), bass: s.live.bass, pcs, label: null, ...nodesName(nodes, torus) };
   }
   const e = playing !== null && path ? path[playing] : null;
   if (e) {
     const nodes = e.nodes.map(({ a, b }) => ({ a, b }));
     const naming = e.shape.kind === 'triad' ? triadName(e.shape.triangle, torus) : nodesName(nodes, torus);
-    return { source: 'playhead', nodes, shape: e.shape, bass: e.bassNode, pcs: s.sketch.chords[playing as number]?.pcs ?? 0, ...naming };
+    const c = s.sketch.chords[playing as number];
+    return { source: 'playhead', nodes, shape: e.shape, bass: e.bassNode, pcs: c?.pcs ?? 0, label: c ? chordText(c) : null, ...naming };
   }
   const cur = s.explorer.current;
   if (!cur) return NONE;
   const nodes = chordNodes(cur);
   const pcs = cur.kind === 'triad' ? trianglePcs(cur.triangle) : fromPcs(nodes.map((n) => pcAt(n.a, n.b)));
   const naming = cur.kind === 'triad' ? triadName(cur.triangle, torus) : nodesName(nodes, torus);
-  return { source: 'explorer', nodes, shape: shapeOf(nodes), bass: null, pcs, ...naming };
+  return { source: 'explorer', nodes, shape: shapeOf(nodes), bass: s.explorer.bass, pcs, label: s.explorer.label, ...naming };
 }
 
 const drifted = (q: number) => Math.abs(spell(q).accidentals) > 2;

@@ -23,7 +23,7 @@ body,
 
 .app {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
 }
 
@@ -79,6 +79,40 @@ select {
   margin-left: auto;
 }
 
+.group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+button:disabled {
+  opacity: 0.4;
+}
+
+.play {
+  min-width: 5.5rem;
+}
+
+.play.on {
+  border-color: #7fd18b;
+  color: #7fd18b;
+}
+
+.tempo {
+  width: 4.2rem;
+}
+
+.sketch-name {
+  width: 10rem;
+}
+
+button.mini {
+  padding: 0 0.35rem;
+  margin-left: 0.3rem;
+  line-height: 1.3;
+  font-size: 0.85rem;
+}
+
 .toggle.on {
   border-color: var(--accent);
   color: var(--accent);
@@ -126,6 +160,15 @@ select {
   color: #ff8a80;
 }
 
+/* Right column: readout and sketch list; the chart drawer slides over it */
+
+.side-pane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+}
+
 /* Readout */
 
 .readout {
@@ -157,6 +200,11 @@ select {
   font-weight: 700;
   margin: 0.2rem 0;
   overflow-wrap: anywhere;
+}
+
+.readout-spelled {
+  font-size: 1.1rem;
+  margin-bottom: 0.2rem;
 }
 
 .readout-hint {
@@ -207,6 +255,180 @@ select {
   color: #ff8a80;
 }
 
+/* Sketch list */
+
+.sketch-list h2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sketch-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.sketch-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.sketch-list li.current {
+  color: var(--accent);
+}
+
+.sketch-list .muted {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+button.link:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+/* Chart drawer */
+
+.chart-drawer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+
+.chart-drawer header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chart-drawer h2 {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.chart-status {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.chart-editor {
+  position: relative;
+  flex: 1;
+  min-height: 8rem;
+}
+
+.chart-backdrop,
+.chart-text {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid #3a3f4a;
+  border-radius: 4px;
+  font: 13px/1.5 ui-monospace, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  tab-size: 4;
+}
+
+.chart-backdrop {
+  color: transparent;
+  background: #1f2228;
+  pointer-events: none;
+}
+
+.chart-backdrop mark {
+  color: transparent;
+  background: rgba(255, 138, 128, 0.18);
+  text-decoration: underline wavy #ff8a80;
+  text-underline-offset: 3px;
+}
+
+.chart-text {
+  resize: none;
+  background: transparent;
+  color: #e6e6e6;
+  caret-color: var(--accent);
+}
+
+.chart-errors {
+  margin: 0;
+  padding-left: 1.1rem;
+  max-height: 6rem;
+  overflow: auto;
+  color: #ff8a80;
+  font-size: 0.85rem;
+}
+
+.chart-help {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.chart-help dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.2rem 0.8rem;
+  margin: 0.4rem 0 0;
+}
+
+.chart-help dt {
+  font-family: ui-monospace, monospace;
+  color: var(--accent);
+}
+
+.chart-help dd {
+  margin: 0;
+}
+
+/* Timeline row: chord blocks, then the voicing */
+
+.timeline-row {
+  border-top: 1px solid var(--line);
+  background: #17181c;
+}
+
+.timeline-canvas {
+  display: block;
+  width: 100%;
+  height: 76px;
+  touch-action: none;
+}
+
+.piano-canvas {
+  display: block;
+  width: 100%;
+  height: 28px;
+}
+
 /* Narrow: readout moves below the Tonnetz */
 
 @media (max-width: 900px) {
@@ -215,8 +437,13 @@ select {
     grid-template-rows: minmax(22rem, 1fr) auto;
   }
 
-  .readout {
+  .readout,
+  .chart-drawer {
     border-left: none;
     border-top: 1px solid var(--line);
+  }
+
+  .side-pane {
+    min-height: 20rem;
   }
 }

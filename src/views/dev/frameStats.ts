@@ -1,7 +1,8 @@
-// Timing samples for the dev overlay: per-frame draws and static-layer
-// rebuilds (pan past the cache margin, zoom settle), kept apart so a rare
-// rebuild doesn't hide the per-frame cost. Plain module state, so recording
-// never triggers a React render or a store update.
+// Timing samples for the dev overlay: per-view draws, their total per frame
+// (the SPEC budget is all views together), and Tonnetz static-layer rebuilds
+// (pan past the cache margin, zoom settle), kept apart so a rare rebuild
+// doesn't hide the per-frame cost. Plain module state, so recording never
+// triggers a React render or a store update.
 
 const SIZE = 120;
 
@@ -29,19 +30,35 @@ class Samples {
   }
 }
 
-const draws = new Samples();
-const rebuilds = new Samples();
+export type ViewName = 'tonnetz' | 'timeline' | 'piano';
 
-export function recordDraw(ms: number) {
-  draws.add(ms);
+const views: Record<ViewName, Samples> = { tonnetz: new Samples(), timeline: new Samples(), piano: new Samples() };
+const totals = new Samples();
+const rebuilds = new Samples();
+let pending = 0;
+
+export function recordDraw(ms: number, view: ViewName = 'tonnetz') {
+  views[view].add(ms);
+  pending += ms;
+}
+
+/** Close the current frame's total. The overlay calls this once per animation frame. */
+export function endFrame() {
+  if (pending > 0) totals.add(pending);
+  pending = 0;
 }
 
 export function recordRebuild(ms: number) {
   rebuilds.add(ms);
 }
 
+/** All views' draw time per frame. */
 export function drawStats() {
-  return draws.stats();
+  return totals.stats();
+}
+
+export function viewStats(view: ViewName) {
+  return views[view].stats();
 }
 
 export function rebuildStats() {

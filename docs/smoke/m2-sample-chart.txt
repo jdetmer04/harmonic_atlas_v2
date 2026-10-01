@@ -1,0 +1,11 @@
+# M2 smoke chart: 32 bars, AABA. Paste into the chart drawer (C).
+@tempo 112
+@meter 4/4
+| Cmaj7 Am7 | Dm7 G7 | Em7 A7 | Dm7 G7 |
+| Cmaj7 C7 | Fmaj7 Fm7 | Em7 A7 | Dm7 G7 |
+| Cmaj7 Am7 | Dm7 G7 | Em7 A7 | Dm7 G7 |
+| Cmaj7 C7 | Fmaj7 Fm7 | Dm7 G7 | C6 . |
+| E7 . | % | A7 . | % |
+| D7 . | % | G7 . | Ab7 G7 |
+| C >P >L >P | >L >P >L >P | Cmaj7 Am7 | Dm7 G7 |
+| Ebmaj7 Ab7 | Dbmaj7 . | Dm7 G7/B | C6 . |

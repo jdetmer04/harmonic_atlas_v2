@@ -2,6 +2,7 @@
 // and view prefs. These are not sketch edits, so they are plain setters
 // rather than undoable commands; sketch edits go through commands.ts.
 
+import { chordText } from '../core/chart';
 import { fromPcs, type PC } from '../core/pcset';
 import { walk } from '../core/ops';
 import { centroid, placeCompact, shapeOf, type Coord, type Triangle } from '../core/tonnetz';
@@ -10,6 +11,7 @@ import { chordNodes, chordPcs, roundCoord } from './helpers';
 import { selectTrail } from './selectors';
 import {
   store,
+  type ChordEvent,
   type CurrentChord,
   type LabelMode,
   type MidiPortInfo,
@@ -26,7 +28,7 @@ const get = store.getState;
 
 export function selectTriangle(triangle: Triangle): CurrentChord {
   const current: CurrentChord = { kind: 'triad', triangle };
-  set((s) => ({ explorer: { ...s.explorer, current, lastMove: null } }));
+  set((s) => ({ explorer: { ...s.explorer, current, bass: null, label: null, lastMove: null } }));
   return current;
 }
 
@@ -40,7 +42,7 @@ export function toggleNode(node: Coord): CurrentChord | null {
   const without = nodes.filter((n) => n.a !== node.a || n.b !== node.b);
   const next = without.length === nodes.length ? [...nodes, { a: node.a, b: node.b }] : without;
   const current = normalize(next);
-  set((s) => ({ explorer: { ...s.explorer, current, lastMove: null } }));
+  set((s) => ({ explorer: { ...s.explorer, current, bass: null, label: null, lastMove: null } }));
   return current;
 }
 
@@ -59,7 +61,7 @@ export function transform(ops: string): CurrentChord | null {
   if (cur?.kind !== 'triad') return null;
   const path = walk(cur.triangle, ops);
   const current: CurrentChord = { kind: 'triad', triangle: path[path.length - 1] as Triangle };
-  set((s) => ({ explorer: { ...s.explorer, current, lastMove: ops.toUpperCase() } }));
+  set((s) => ({ explorer: { ...s.explorer, current, bass: null, label: null, lastMove: ops.toUpperCase() } }));
   return current;
 }
 
@@ -70,7 +72,7 @@ export function setHover(hover: Triangle | null) {
 }
 
 export function clearCurrent() {
-  set((s) => ({ explorer: { ...s.explorer, current: null, lastMove: null } }));
+  set((s) => ({ explorer: { ...s.explorer, current: null, bass: null, label: null, lastMove: null } }));
 }
 
 /** Append the current (or draft) chord at the insert point. Returns the new chord's id. */
@@ -99,7 +101,7 @@ export function selectChord(id: string | null) {
       : { kind: 'nodes', nodes: e.nodes.map(({ a, b }) => ({ a, b })) };
   set({
     timeline: { selection: id, insertIndex: index + 1 },
-    explorer: { ...s.explorer, current, lastMove: null },
+    explorer: { ...s.explorer, current, bass: e?.bassNode ?? null, label: chordText(s.sketch.chords[index] as ChordEvent), lastMove: null },
   });
 }
 

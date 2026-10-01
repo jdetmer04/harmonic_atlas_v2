@@ -2,7 +2,7 @@
 
 A local scratchpad for sketching harmonic ideas as paths through fixed spaces: a Tonnetz, a pitch-class DFT panel and Euclidean rhythm necklaces, sharing one sketch and one playhead. The full design is in [SPEC.md](SPEC.md).
 
-**Status:** M1 — Tonnetz explorer. Click triangles and nodes to hear them, walk with P/L/R/S/H/N (and your own operator strings), pan and zoom, switch to the torus, and play a MIDI keyboard to light up what you hold.
+**Status:** M2 — sketch, chart and playback. Build a progression on the Tonnetz or type it as a chart, hear it loop with smooth auto-voicing, watch its trail drift across the lattice, and undo anything. Sketches autosave and come back on reload. (M1's explorer is all still there.)
 
 ## Running it
 
@@ -33,6 +33,24 @@ The MIDI spike page is at <http://localhost:5173/spike/midi.html>.
 
 Held MIDI notes override the current chord while held, with a ring on the lowest note. Pick the input in the top bar.
 
+### Building and playing a sketch
+
+| Input | Does |
+| --- | --- |
+| Enter, Shift-click | Append the current chord (one bar) at the insert point; later chords move back |
+| Shift + P/L/R/S/H/N | Transform and append |
+| C | Chart drawer: type or paste chords (syntax help is in the drawer) |
+| Space | Play / stop (loops the loop region, or the whole sketch) |
+| Click a timeline block | Hear it and make it current; P/L/R continue from it |
+| ← → | Move the insert point |
+| Backspace | Delete the selected chord |
+| Drag in the timeline ruler | Set the loop (bars; Shift for beats). Click the ruler to clear |
+| Ctrl+Z, Ctrl+Shift+Z | Undo, redo |
+
+The top bar has tempo, meter, metronome, count-in, the sketch name, the sound (E-piano, Pad, Pluck), the voicing mode (smooth, close, drop2, spread) and undo/redo. The right column lists saved sketches.
+
+The trail places each chord at the copy nearest the previous one and never re-centers, so it drifts. A ii–V–I loop winds sideways around the lattice, and chromatic moves can slip into flat or sharp spellings. That is the geometry talking (SPEC "Path embedding").
+
 Labels are spelled by lattice position, so they drift as you move: three rows up from C the same pitch is B♯. Past double accidentals a name is compacted (C♭³) and shows its everyday name as a hint (=A).
 
 Per-milestone manual checks live in [docs/smoke](docs/smoke).
@@ -40,10 +58,13 @@ Per-milestone manual checks live in [docs/smoke](docs/smoke).
 ## Layout
 
 ```text
-src/core/     pure music math, no DOM/audio (pcset, spell, tonnetz, ops, dft, rhythm, voicing)
-src/state/    Zustand store: explorer, live MIDI, view prefs (the sketch arrives in M2)
-src/engine/   Tone.js audition synth, Web MIDI in
-src/views/    Tonnetz canvas (tiled static layer + per-frame layer), top bar, readout
+src/core/     pure music math, no DOM/audio (pcset, spell, tonnetz, ops, dft, rhythm,
+              voicing, chart, embed)
+src/state/    Zustand store: the sketch (changed only by commands.ts, one undo stack),
+              session state, selectors, IndexedDB autosave
+src/engine/   Tone.js Transport and patches, audition synth, Web MIDI in
+src/views/    Tonnetz canvas (tiled static layer + per-frame layer), timeline, piano
+              strip, chart drawer, top bar, readout, sketch list
 src/app/      composition root: wires engine to views, keymap, layout
 spike/        throwaway pages (MIDI → Reaper spike)
 tests/core/   one test file per core module
@@ -57,7 +78,7 @@ Boundaries are enforced, not just documented:
 
 - `src/core/` may import only sibling core modules and `tonal`. ESLint rejects anything else, and `tsconfig.core.json` type-checks core without DOM or Node types, so `window`, `AudioContext` or `console` in core fail the build.
 - `src/views/` may not import `src/engine/`.
-- Only `src/state/commands.ts` may import `state/mutate` (the raw sketch setter, arriving in M2).
+- Only `src/state/commands.ts` may import `state/mutate` (the raw sketch setter).
 
 ## MIDI into Reaper
 

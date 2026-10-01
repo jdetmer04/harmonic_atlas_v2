@@ -1,8 +1,9 @@
 // Tonnetz drawing. Two layers:
 //   static  — lattice, idle triangle fills, nodes, labels; cached offscreen
-//   dynamic — the lit chord, bass ring, hover and ghost neighbours; each redraw
+//   dynamic — the trail, lit chord, bass ring, hover and ghost neighbours; each redraw
 // All coordinates are CSS pixels; the caller sets the devicePixelRatio transform.
 
+import type { EmbeddedChord, Move, MoveKind } from '../../core/embed';
 import { flip, type Op } from '../../core/ops';
 import { defaultName, noteLabel } from '../../core/spell';
 import {
@@ -42,6 +43,12 @@ export const COLORS = {
   bass: '#7fd18b',
   hover: 'rgba(255,255,255,0.07)',
   ghost: 'rgba(255,255,255,0.45)',
+  trail: {
+    flip: '#f0c27a',
+    compound: '#7cc4ea',
+    jump: '#a9adb6',
+    same: '#a9adb6',
+  } satisfies Record<MoveKind, string>,
 };
 
 export interface Scene {
@@ -191,16 +198,25 @@ export function drawStatic(ctx: CanvasRenderingContext2D, scene: Scene) {
 
 // Dynamic layer
 
+export interface TrailInput {
+  chords: readonly (EmbeddedChord | null)[];
+  moves: readonly (Move | null)[];
+  head: number; // index of the newest chord shown
+  length: number; // how many chords the trail spans
+}
+
 export interface DynamicInput {
   display: Display;
   hover: Triangle | null;
+  trail: TrailInput | null;
 }
 
 const OPS: Op[] = ['P', 'L', 'R'];
 
 export function drawDynamic(ctx: CanvasRenderingContext2D, scene: Scene, input: DynamicInput) {
-  const { display, hover } = input;
+  const { display, hover, trail } = input;
   if (!scene.torus) {
+    if (trail) drawTrail(ctx, scene, trail, 0, 0);
     if (hover) drawHover(ctx, scene, hover, 0, 0);
     drawDisplay(ctx, scene, display, 0, 0);
     return;
@@ -212,6 +228,8 @@ export function drawDynamic(ctx: CanvasRenderingContext2D, scene: Scene, input: 
   ctx.save();
   torusClip(ctx, scene);
   ctx.clip();
+  const head = trail?.chords[trail.head];
+  if (trail && head) for (const [da, db] of wrapOffsets(head.nodes)) drawTrail(ctx, scene, trail, da, db);
   if (hover) for (const [da, db] of wrapOffsets(triangleNodes(hover))) drawHover(ctx, scene, hover, da, db);
   if (display.source !== 'none') {
     for (const [da, db] of offsets) drawShape(ctx, scene, display.shape, display.source === 'midi', da, db);
@@ -259,6 +277,64 @@ function drawHover(ctx: CanvasRenderingContext2D, scene: Scene, hover: Triangle,
     ctx.fillText(op, p.x, p.y);
   }
   ctx.setLineDash([]);
+}
+
+/**
+ * The last few chords as faint shapes, joined centroid to centroid with small
+ * arrowheads, fading with age. Segment color is the move type.
+ */
+function drawTrail(ctx: CanvasRenderingContext2D, scene: Scene, trail: TrailInput, da: number, db: number) {
+  const first = Math.max(0, trail.head - trail.length + 1);
+  const age = (i: number) => (trail.head - i) / trail.length; // 0 newest … <1 oldest
+
+  for (let i = first; i < trail.head; i++) {
+    const e = trail.chords[i];
+    if (!e) continue;
+    ctx.globalAlpha = 0.08 + 0.32 * (1 - age(i));
+    drawShape(ctx, scene, e.shape, false, da, db);
+  }
+
+  const arrow = Math.max(5, scene.cam.zoom * 0.12);
+  ctx.lineCap = 'round';
+  let prev: EmbeddedChord | null = null;
+  for (let i = first; i <= trail.head; i++) {
+    const e = trail.chords[i];
+    if (!e) continue;
+    const move = trail.moves[i];
+    if (prev && move && move.kind !== 'same') {
+      const p = toScreen(scene.cam, scene.vp, prev.centroid.a + da, prev.centroid.b + db);
+      const q = toScreen(scene.cam, scene.vp, e.centroid.a + da, e.centroid.b + db);
+      ctx.globalAlpha = 0.25 + 0.7 * (1 - age(i));
+      ctx.strokeStyle = COLORS.trail[move.kind];
+      ctx.fillStyle = COLORS.trail[move.kind];
+      ctx.lineWidth = move.kind === 'jump' ? 1.5 : 2.5;
+      ctx.setLineDash(move.kind === 'jump' ? [4, 4] : []);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(q.x, q.y);
+      ctx.stroke();
+      // Arrowhead just past the middle, so it never hides under the lit chord.
+      const dx = q.x - p.x;
+      const dy = q.y - p.y;
+      const len = Math.hypot(dx, dy);
+      if (len > arrow * 2) {
+        const ux = dx / len;
+        const uy = dy / len;
+        const mx = p.x + dx * 0.6;
+        const my = p.y + dy * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(mx + ux * arrow, my + uy * arrow);
+        ctx.lineTo(mx - ux * arrow * 0.6 - uy * arrow * 0.7, my - uy * arrow * 0.6 + ux * arrow * 0.7);
+        ctx.lineTo(mx - ux * arrow * 0.6 + uy * arrow * 0.7, my - uy * arrow * 0.6 - ux * arrow * 0.7);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    prev = e;
+  }
+  ctx.setLineDash([]);
+  ctx.lineCap = 'butt';
+  ctx.globalAlpha = 1;
 }
 
 function drawDisplay(ctx: CanvasRenderingContext2D, scene: Scene, display: Display, da: number, db: number) {

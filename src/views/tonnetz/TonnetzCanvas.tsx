@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { closeVoicing } from '../../core/voicing';
-import { chordPcs, selectTriangle, setHover, toggleNode } from '../../state/actions';
+import { appendCurrent, chordPcs, selectTriangle, setHover, toggleNode } from '../../state/actions';
 import { setCamera } from '../../state/commands';
-import { selectDisplay } from '../../state/selectors';
+import { selectDisplay, selectedIndex, selectMoves, selectTrail } from '../../state/selectors';
 import { store, type Camera } from '../../state/store';
 import { useAudition, type Audition } from '../audition';
 import { recordDraw, recordRebuild } from '../dev/frameStats';
 import { ensureVisible, panBy, torusCamera, zoomAt, type Viewport } from './camera';
-import { COLORS, drawDynamic, drawStatic, type Scene } from './draw';
+import { COLORS, drawDynamic, drawStatic, type Scene, type TrailInput } from './draw';
 import { hitTest } from './hit-test';
 import { LatticeTiles } from './tiles';
 
@@ -29,6 +29,7 @@ export function TonnetzCanvas() {
 }
 
 const DRAG_THRESHOLD = 4;
+const TRAIL_LENGTH = 8;
 const AUTO_PAN_MS = 180;
 const ZOOM_SETTLE_MS = 150;
 /** Per-frame time allowed for prefetching lattice tiles outside the view. */
@@ -113,7 +114,7 @@ function mountTonnetz(canvas: HTMLCanvasElement, audition: Audition): () => void
       if (res.rendered > 0) recordRebuild(res.renderMs);
       if (res.pending) requestDraw();
     }
-    drawDynamic(ctx, scene, { display: selectDisplay(s), hover: s.explorer.hover });
+    drawDynamic(ctx, scene, { display: selectDisplay(s), hover: s.explorer.hover, trail: trailInput(s) });
     recordDraw(performance.now() - t0);
 
     if (anim) {
@@ -123,6 +124,20 @@ function mountTonnetz(canvas: HTMLCanvasElement, audition: Audition): () => void
         setCamera(to);
       } else requestDraw();
     }
+  }
+
+  /** The trail ends at the playing chord, else the selection, else the chord before the insert point. */
+  function trailInput(s: ReturnType<typeof store.getState>): TrailInput | null {
+    const chords = selectTrail(s);
+    if (chords.length === 0) return null;
+    let head: number;
+    if (s.transport.playing) head = s.transport.chordIndex ?? -1;
+    else {
+      const sel = selectedIndex(s);
+      head = sel >= 0 ? sel : s.timeline.insertIndex - 1;
+    }
+    if (head < 0) return null;
+    return { chords, moves: selectMoves(s), head, length: TRAIL_LENGTH };
   }
 
   // Size and pixel ratio
@@ -152,7 +167,10 @@ function mountTonnetz(canvas: HTMLCanvasElement, audition: Audition): () => void
 
   const unsubscribe = store.subscribe((s, prev) => {
     requestDraw();
-    const moved = s.explorer.current !== prev.explorer.current || s.live.placed !== prev.live.placed;
+    const moved =
+      s.explorer.current !== prev.explorer.current ||
+      s.live.placed !== prev.live.placed ||
+      s.transport.chordIndex !== prev.transport.chordIndex;
     if (!moved || !s.view.autoPan || s.view.torus || drag) return;
     const nodes = selectDisplay(s).nodes;
     const from = anim ? anim.to : s.sketch.view.camera;
@@ -213,8 +231,14 @@ function mountTonnetz(canvas: HTMLCanvasElement, audition: Audition): () => void
     const s = store.getState();
     const hit = hitTest(viewCamera(performance.now()), vp, p.x, p.y, s.view.torus);
     if (!hit) return;
+    // Shift-click appends: a triangle appends that triad; on a node, the draft as it stands.
+    if (e.shiftKey && hit.kind === 'node') {
+      appendCurrent();
+      return;
+    }
     const chord = hit.kind === 'node' ? toggleNode(hit.node) : selectTriangle(hit.triangle);
     if (chord) audition(closeVoicing(chordPcs(chord)));
+    if (e.shiftKey) appendCurrent();
   }
 
   function onPointerLeave() {

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useStore } from 'zustand';
 import { store } from '../../state/store';
-import { drawStats, rebuildStats } from './frameStats';
+import { drawStats, endFrame, rebuildStats, viewStats } from './frameStats';
 
-/** Tonnetz frame time (budget 8 ms), static-layer rebuilds, and the browser's frame rate. Toggle with `. */
+/** Frame time of all views together (budget 8 ms), per view, lattice rebuilds, and the browser's frame rate. Toggle with `. */
 export function FrameOverlay() {
   const on = useStore(store, (s) => s.view.frameOverlay);
   const [text, setText] = useState('');
@@ -14,6 +14,7 @@ export function FrameOverlay() {
     let frames = 0;
     let raf = requestAnimationFrame(function tick() {
       frames++;
+      endFrame();
       raf = requestAnimationFrame(tick);
     });
     let last = performance.now();
@@ -24,8 +25,11 @@ export function FrameOverlay() {
       last = now;
       const d = drawStats();
       const r = rebuildStats();
+      const t = viewStats('tonnetz');
+      const tl = viewStats('timeline');
       setText(
         `${fps.toFixed(0)} fps · frame ${d.last.toFixed(2)} ms (avg ${d.avg.toFixed(2)}, max ${d.max.toFixed(2)})` +
+          ` · tonnetz avg ${t.avg.toFixed(2)} · timeline avg ${tl.avg.toFixed(2)}` +
           ` · lattice tiles ${r.last.toFixed(1)} ms/frame (max ${r.max.toFixed(1)}, n=${r.count})`,
       );
     }, 250);

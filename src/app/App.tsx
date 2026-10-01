@@ -1,18 +1,25 @@
 import { useEffect } from 'react';
 import { startMidiIn } from '../engine/midi-in';
 import { playAudition, startAudio } from '../engine/synths';
+import { getBeat, startTransport } from '../engine/transport';
 import { AuditionContext } from '../views/audition';
+import { ChartDrawer } from '../views/chart/ChartDrawer';
 import { FrameOverlay } from '../views/dev/FrameOverlay';
+import { PlayheadContext } from '../views/playhead';
 import { ChordReadout } from '../views/readout/ChordReadout';
+import { PianoStrip } from '../views/timeline/PianoStrip';
+import { Timeline } from '../views/timeline/Timeline';
 import { TonnetzCanvas } from '../views/tonnetz/TonnetzCanvas';
 import { TopBar } from '../views/topbar/TopBar';
 import { installKeymap } from './keymap';
 
 // app/ is the only layer that sees both engine/ and views/: it hands views
-// the audition function and wires keys and MIDI in.
+// the audition function and the playhead clock, and wires keys, MIDI in and
+// the Transport.
 
 export function App() {
   useEffect(() => installKeymap(playAudition), []);
+  useEffect(() => startTransport(), []);
 
   useEffect(() => {
     let stop: (() => void) | undefined;
@@ -41,16 +48,25 @@ export function App() {
 
   return (
     <AuditionContext.Provider value={playAudition}>
-      <div className="app">
-        <TopBar />
-        <main className="main-row">
-          <section className="tonnetz-pane">
-            <TonnetzCanvas />
-            <FrameOverlay />
+      <PlayheadContext.Provider value={getBeat}>
+        <div className="app">
+          <TopBar />
+          <main className="main-row">
+            <section className="tonnetz-pane">
+              <TonnetzCanvas />
+              <FrameOverlay />
+            </section>
+            <div className="side-pane">
+              <ChordReadout />
+              <ChartDrawer />
+            </div>
+          </main>
+          <section className="timeline-row">
+            <Timeline />
+            <PianoStrip />
           </section>
-          <ChordReadout />
-        </main>
-      </div>
+        </div>
+      </PlayheadContext.Provider>
     </AuditionContext.Provider>
   );
 }

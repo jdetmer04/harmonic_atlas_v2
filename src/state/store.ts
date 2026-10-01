@@ -100,6 +100,9 @@ export interface LiveState {
 
 export interface ExplorerState {
   current: CurrentChord | null;
+  /** Bass ring and chord name for the current chord when it came from a sketch chord; cleared by any edit. */
+  bass: Coord | null;
+  label: string | null;
   hover: Triangle | null;
   lastMove: string | null; // operator string of the last transform
 }
@@ -183,7 +186,7 @@ export function initialState(view: ViewPrefs = DEFAULT_VIEW, sketch: Sketch = em
   return {
     sketch,
     history: { past: [], future: [] },
-    explorer: { current: null, hover: null, lastMove: null },
+    explorer: { current: null, bass: null, label: null, hover: null, lastMove: null },
     timeline: { selection: null, insertIndex: sketch.chords.length },
     transport: { playing: false, chordIndex: null, metronome: false, countIn: false },
     live: { held: [], placed: [], bass: null, midiStatus: 'pending', inputs: [], inputId: null },
